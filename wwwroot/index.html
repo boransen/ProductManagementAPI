@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Ürün Yönetimi (Memory CRUD)</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+        }
+
+        input, select, button {
+            margin: 5px;
+            padding: 8px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ürün Yönetimi</h1>
+
+    <input type="hidden" id="productId" />
+    <input type="text" id="name" placeholder="Ürün Adı" />
+    <input type="number" id="price" placeholder="Fiyat" />
+    <select id="category"></select>
+    <button onclick="saveProduct()">Kaydet / Güncelle</button>
+    <button onclick="resetForm()">Temizle</button>
+
+    <h2>Ürün Listesi</h2>
+    <table id="productTable">
+        <thead>
+            <tr><th>Ad</th><th>Fiyat</th><th>Kategori</th><th>İşlemler</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        // Sabit 10 kategori tanımı
+        const categories = [
+            { id: 1, name: "Elektronik" },
+            { id: 2, name: "Giyim" },
+            { id: 3, name: "Ev & Yaşam" },
+            { id: 4, name: "Kitaplar" },
+            { id: 5, name: "Spor" },
+            { id: 6, name: "Kozmetik" },
+            { id: 7, name: "Otomotiv" },
+            { id: 8, name: "Oyuncak" },
+            { id: 9, name: "Bahçe" },
+            { id: 10, name: "Ofis" }
+        ];
+
+        // Ürünlerin tutulduğu dizi (memory)
+        let products = [];
+
+        // Kategori select'i doldur
+        function loadCategories() {
+            const select = document.getElementById("category");
+            select.innerHTML = '<option value="">Kategori Seçiniz</option>';
+            categories.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.textContent = c.name;
+                select.appendChild(opt);
+            });
+        }
+
+        // Tabloyu güncelle
+        function renderProducts() {
+            const tbody = document.querySelector("#productTable tbody");
+            tbody.innerHTML = "";
+
+            products.forEach(p => {
+                const categoryName = categories.find(c => c.id === p.categoryId)?.name || "Kategori Yok";
+                const tr = document.createElement("tr");
+
+                tr.innerHTML = `
+                        <td>${escapeHtml(p.name)}</td>
+                        <td>${p.price.toFixed(2)}</td>
+                        <td>${categoryName}</td>
+                        <td>
+                            <button onclick="editProduct(${p.id})">Düzenle</button>
+                            <button onclick="deleteProduct(${p.id})">Sil</button>
+                        </td>
+                    `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Ürün ekle veya güncelle
+        function saveProduct() {
+            const idInput = document.getElementById("productId");
+            const nameInput = document.getElementById("name");
+            const priceInput = document.getElementById("price");
+            const categorySelect = document.getElementById("category");
+
+            const id = idInput.value ? parseInt(idInput.value) : null;
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value);
+            const categoryId = parseInt(categorySelect.value);
+
+            if (!name || isNaN(price) || isNaN(categoryId)) {
+                alert("Lütfen tüm alanları eksiksiz doldurun.");
+                return;
+            }
+
+            if (id) {
+                // Güncelle
+                const index = products.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    products[index].name = name;
+                    products[index].price = price;
+                    products[index].categoryId = categoryId;
+                }
+            } else {
+                // Yeni ürün ekle
+                const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+                products.push({ id: newId, name, price, categoryId });
+            }
+
+            resetForm();
+            renderProducts();
+        }
+
+        // Ürünü düzenle için formu doldur
+        function editProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            document.getElementById("productId").value = product.id;
+            document.getElementById("name").value = product.name;
+            document.getElementById("price").value = product.price;
+            document.getElementById("category").value = product.categoryId;
+        }
+
+        // Ürün sil
+        function deleteProduct(id) {
+            if (!confirm("Silmek istediğinize emin misiniz?")) return;
+
+            products = products.filter(p => p.id !== id);
+            renderProducts();
+        }
+
+        // Formu temizle
+        function resetForm() {
+            document.getElementById("productId").value = "";
+            document.getElementById("name").value = "";
+            document.getElementById("price").value = "";
+            document.getElementById("category").value = "";
+        }
+
+        // XSS koruması için escape
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Sayfa yüklendiğinde kategori doldur ve tabloyu render et
+        window.onload = () => {
+            loadCategories();
+            renderProducts();
+        };
+    </script>
+</body>
+</html>
